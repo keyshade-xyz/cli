@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "crates/ks_cli",
+    "crates/ks_cli_bin",
+]

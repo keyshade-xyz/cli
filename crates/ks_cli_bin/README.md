@@ -1,0 +1,1 @@
+this crate is for building the cli binary, including integration tests and documentation.

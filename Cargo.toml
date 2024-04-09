@@ -1,7 +1,11 @@
-[workspace]
-resolver = "2"
+[package]
+authors = ["Sawan Bhattacharya <sawan@keyshade.xyz>","Sambit Chakraborty <sambit@keyshade.xyz>"]
+description = "Manage your secrets with keyshade cli"
+license = "MPL-2.0"
+name = "cli"
+version = "0.1.0"
+edition = "2021"
 
-members = [
-    "crates/ks_cli",
-    "crates/ks_cli_bin",
-]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

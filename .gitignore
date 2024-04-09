@@ -16,3 +16,8 @@ Cargo.lock
 # IDE, editor configs
 .idea
 .vscode
+
+
+# Added by cargo
+
+/target

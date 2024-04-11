@@ -1,3 +1,5 @@
+mod commands;
+mod constants;
 fn main() {
-    println!("Hello, world!");
+    commands::main();
 }

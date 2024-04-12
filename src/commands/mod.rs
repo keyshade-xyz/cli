@@ -1,6 +1,7 @@
 use crate::constants::{ABOUT, VERSION};
-use clap::{arg, Command};
+use clap::{arg, ArgMatches, Command};
 
+/// Constructs the command line interface for the keyshades CLI.
 pub fn cli() -> Command {
     Command::new("keyshades-cli")
         .alias("ks")
@@ -35,8 +36,14 @@ pub fn cli() -> Command {
                 .arg(arg!(-p --project <PROJECT> "list all projects")),
         )
 }
-/// Execute the command line application
-pub fn main() {
-    let matches = cli().get_matches();
+
+pub fn execution() {
+    let matches: ArgMatches = cli().get_matches();
     print!("{:?}", matches)
+
+}
+
+/// Executes the command line application.
+pub fn main() {
+    execution();
 }

@@ -10,3 +10,9 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
+
+# We optimize the release build for size. (https://doc.rust-lang.org/cargo/reference/profiles.html)
+[profile.release]
+opt-level = "z" # Optimize for binary size
+codegen-units = 1 # improve runtime speed and reduce binary size, at the cost of increased compile times
+strip = true  #strip debug info and symbols from the compiled binary, to reduce binary size by 4x on Linux

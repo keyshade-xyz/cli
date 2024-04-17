@@ -1,5 +1,9 @@
-use crate::constants::{ABOUT, VERSION};
-use clap::{arg, ArgMatches, Command};
+use crate::{
+    commands::configure::configure,
+    constants::{ABOUT, VERSION},
+};
+mod configure;
+use clap::{arg, Arg, ArgAction, ArgMatches, Command};
 
 /// Constructs the command line interface for the keyshades CLI.
 pub fn cli() -> Command {
@@ -14,21 +18,49 @@ pub fn cli() -> Command {
             Command::new("configure")
                 .alias("conf")
                 .about("Configure the keyshades CLI, alias to `conf`")
-                .arg(arg!(-w --workspace <WORKSPACE> "Configure the workspace"))
-                .arg(arg!(-p --project <PROJECT> "Configure the project")),
+                .arg(
+                    Arg::new("WORKSPACE")
+                        .long("workspace")
+                        .short('w')
+                        .action(ArgAction::Set)
+                        .help("Configure the workspace")
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("PROJECT")
+                        .long("project")
+                        .short('p')
+                        .action(ArgAction::Set)
+                        .help("Configure the project"),
+                ),
         )
         .subcommand(
             Command::new("add")
                 .about("Add a new project to the workspace or a new workspace")
-                .arg(arg!(-w --workspace <WORKSPACE> "Add the workspace").required(true))
-                .arg(arg!(-p --project <PROJECT> "Add the project, to add a project you must specify the workspace")),
-        ).subcommand(
+                .arg(
+                    Arg::new("WORKSPACE")
+                        .long("workspace")
+                        .short('w')
+                        .action(ArgAction::Set)
+                        .help("Add the workspace")
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("PROJECT")
+                        .long("project")
+                        .short('p')
+                        .action(ArgAction::Set)
+                        .help("Add the project, to add a project you must specify the workspace"),
+                ),
+        )
+        .subcommand(
             Command::new("remove")
                 .alias("rm")
                 .about("Remove project(s) or workspace(s), alias to `rm`")
                 .arg(arg!(-w --workspace <WORKSPACE> "Configure the workspace ").required(true))
                 .arg(arg!(-p --project <PROJECT> "Configure the project")),
-        ).subcommand(
+        )
+        .subcommand(
             Command::new("list")
                 .alias("li")
                 .about("Add project(s) or workspace(s), alias to `li`")
@@ -39,8 +71,25 @@ pub fn cli() -> Command {
 
 pub fn execution() {
     let matches: ArgMatches = cli().get_matches();
-    print!("{:?}", matches)
-
+    match matches.subcommand() {
+        Some(("configure", sub_m)) => {
+            let workspace: &String = sub_m.get_one::<String>("WORKSPACE").unwrap();
+            let project: Option<&String> = sub_m.get_one::<String>("PROJECT");
+            configure(workspace, project);
+        }
+        Some(("add", sub_m)) => {
+            dbg!(sub_m);
+        }
+        Some(("remove", sub_m)) => {
+            dbg!(sub_m);
+        }
+        Some(("list", sub_m)) => {
+            dbg!(sub_m);
+        }
+        _ => {
+            println!("No subcommand was used");
+        }
+    }
 }
 
 /// Executes the command line application.

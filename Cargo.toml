@@ -10,6 +10,12 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
+colored = "2.1.0"
+directories = "5.0.1"
+inquire = "0.7.4"
+serde = {version = "1.0.197", features = ["derive"] }
+spinners = "4.1.1"
+toml = "0.8.12"
 
 # We optimize the release build for size. (https://doc.rust-lang.org/cargo/reference/profiles.html)
 [profile.release]

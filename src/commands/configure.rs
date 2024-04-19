@@ -1,31 +1,14 @@
 use colored::Colorize;
 use inquire::Password;
-use serde::{Deserialize, Serialize};
 use spinners::{Spinner, Spinners};
 use std::{collections::HashMap, fs, path::Path};
 
 use directories::UserDirs;
 
-use crate::constants::{BASE_URL, CONFIG_FILE_NAME};
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Project {
-    api_key: String,
-    private_key: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Workspace {
-    #[serde(flatten)]
-    projects: Option<HashMap<String, Project>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Configure {
-    base_url: String,
-    #[serde(flatten)]
-    workspaces: HashMap<String, Workspace>,
-}
+use crate::{
+    constants::{BASE_URL, CONFIG_FILE_NAME},
+    models::toml_model::{Configure, Project, Workspace},
+};
 
 /// Configures the keyshades-cli by creating a configuration file in the user's home directory.
 ///

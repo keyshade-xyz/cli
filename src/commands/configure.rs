@@ -27,6 +27,20 @@ struct Configure {
     workspaces: HashMap<String, Workspace>,
 }
 
+/// Configures the keyshades-cli by creating a configuration file in the user's home directory.
+///
+/// # Arguments
+///
+/// * `wrkspc` - A reference to a `String` representing the workspace name.
+/// * `prjct` - An optional reference to a `String` representing the project name.
+///
+/// # Example
+///
+/// ```
+/// let workspace = "my_workspace".to_string();
+/// let project = Some("my_project".to_string());
+/// configure(&workspace, project.as_ref());
+/// ```
 pub fn configure(wrkspc: &String, prjct: Option<&String>) {
     let mut api_key_input: String = String::new();
     let mut private_key_input: String = String::new();
@@ -57,10 +71,7 @@ pub fn configure(wrkspc: &String, prjct: Option<&String>) {
                         .unwrap();
                 }
 
-                let mut sp = Spinner::new(
-                    Spinners::Dots9,
-                    "Creating config file...".into(),
-                );
+                let mut sp = Spinner::new(Spinners::Dots9, "Creating config file...".into());
 
                 let mut workspace_map: HashMap<String, Workspace> = HashMap::new();
                 workspace_map.insert(
@@ -93,29 +104,13 @@ pub fn configure(wrkspc: &String, prjct: Option<&String>) {
                 // dbg!(config);
                 // dbg!(config_str);
                 sp.stop();
-				println!("\n{}", "Config file created 🎉".bright_green());
+                println!("\n{}", "Config file created 🎉".bright_green());
             }
         }
-        // let config: Configure = toml::from_str(
-        //     r#"
-        // 	base_url = "https://api.keyshades.com"
-
-        // 	[keyshade]
-        // 	[keyshade.backend]
-        // 	api_key = "api_key"
-        // 	private_key = "private key"
-        // 	[keyshade.frontend]
-        // 	api_key = "api_key 2"
-        // 	private_key = "private key 2"
-
-        // 	[truezk.ui]
-        // 	api_key = "api_key 3"
-        // 	private_key = "private key 3"
-
-        //  "#,
-        // )
-        // .unwrap();
-
-        // dbg!(config_dir);
+    } else {
+        eprintln!(
+            "{}",
+            "Error: Could not find the user's home directory".bright_red()
+        );
     }
 }

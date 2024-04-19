@@ -1,9 +1,14 @@
 use crate::{
+    commands::add::add,
     commands::configure::configure,
     constants::{ABOUT, VERSION},
 };
+mod add;
 mod configure;
+mod run_command_with_env;
 use clap::{arg, Arg, ArgAction, ArgMatches, Command};
+
+use self::run_command_with_env::run;
 
 /// Constructs the command line interface for the keyshades CLI.
 pub fn cli() -> Command {
@@ -67,6 +72,21 @@ pub fn cli() -> Command {
                 .arg(arg!(-w --workspace <WORKSPACE> "list all workspace").required(true))
                 .arg(arg!(-p --project <PROJECT> "list all projects")),
         )
+        .subcommand(
+            Command::new("run")
+                .alias("r")
+                .about("run a command, alias to `r`")
+                .arg(
+                    Arg::new("COMMAND")
+                        .help("The command to run")
+                        .value_name("COMMAND")
+                        .allow_hyphen_values(true)
+                        .last(true)
+                        .num_args(1..)
+                        .action(ArgAction::Set)
+                        .required(true),
+                ),
+        )
 }
 
 pub fn execution() {
@@ -78,13 +98,18 @@ pub fn execution() {
             configure(workspace, project);
         }
         Some(("add", sub_m)) => {
-            dbg!(sub_m);
+            let workspace: &String = sub_m.get_one::<String>("WORKSPACE").unwrap();
+            let project: Option<&String> = sub_m.get_one::<String>("PROJECT");
+            add(workspace, project);
         }
         Some(("remove", sub_m)) => {
             dbg!(sub_m);
         }
         Some(("list", sub_m)) => {
             dbg!(sub_m);
+        }
+        Some(("run", sub_m)) => {
+            run(sub_m);
         }
         _ => {
             println!("No subcommand was used");

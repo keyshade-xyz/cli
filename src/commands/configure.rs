@@ -1,14 +1,11 @@
 use colored::Colorize;
 use inquire::Password;
 use spinners::{Spinner, Spinners};
-use std::{collections::HashMap, fs, path::Path};
+use std::{fs, path::Path};
 
 use directories::UserDirs;
 
-use crate::{
-    constants::{BASE_URL, CONFIG_FILE_NAME},
-    models::toml_model::{Configure, Project, Workspace},
-};
+use crate::{constants::CONFIG_FILE_NAME, generate_config_toml};
 
 /// Configures the keyshades-cli by creating a configuration file in the user's home directory.
 ///
@@ -55,37 +52,19 @@ pub fn configure(wrkspc: &String, prjct: Option<&String>) {
                 }
 
                 let mut sp = Spinner::new(Spinners::Dots9, "Creating config file...".into());
+                if let Some(project) = prjct {
+                    let config_str: String = generate_config_toml!(
+                        wrkspc,
+                        Some(project.to_string()),
+                        api_key_input,
+                        private_key_input
+                    );
+                    fs::write(config_dir.join(CONFIG_FILE_NAME), config_str).unwrap();
+                } else {
+                    let config_str: String = generate_config_toml!(wrkspc, None, "", "");
+                    fs::write(config_dir.join(CONFIG_FILE_NAME), config_str).unwrap();
+                }
 
-                let mut workspace_map: HashMap<String, Workspace> = HashMap::new();
-                workspace_map.insert(
-                    wrkspc.to_string(),
-                    Workspace {
-                        projects: match prjct {
-                            Some(project) => {
-                                let mut project_map = HashMap::new();
-                                project_map.insert(
-                                    project.to_string(),
-                                    Project {
-                                        api_key: api_key_input.to_string(),
-                                        private_key: private_key_input.to_string(),
-                                    },
-                                );
-                                Some(project_map)
-                            }
-                            None => None,
-                        },
-                    },
-                );
-
-                let config: Configure = Configure {
-                    base_url: BASE_URL.to_string(),
-                    workspaces: workspace_map,
-                };
-
-                let config_str: String = toml::to_string(&config).unwrap();
-                fs::write(config_dir.join(CONFIG_FILE_NAME), config_str).unwrap();
-                // dbg!(config);
-                // dbg!(config_str);
                 sp.stop();
                 println!("\n{}", "Config file created 🎉".bright_green());
             }

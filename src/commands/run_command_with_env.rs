@@ -17,7 +17,7 @@ use clap::ArgMatches;
 /// keyshades-cli run -- node index.js
 /// ``````
 pub fn run(sub_m: &ArgMatches) {
-    let mut env_vars: HashMap<String, String> = HashMap::new();
+    let mut env_vars: HashMap<String, String> = HashMap::new(); // ! this will be replaced with the env vars from the backend
     env_vars.insert("NAME".to_string(), "Sawan".to_string());
     env_vars.insert("AGE".to_string(), "21".to_string());
     env_vars.insert("COUNTRY".to_string(), "India".to_string());

@@ -68,7 +68,7 @@ pub fn cli() -> Command {
         .subcommand(
             Command::new("list")
                 .alias("li")
-                .about("Add project(s) or workspace(s), alias to `li`")
+                .about("List project(s) or workspace(s), alias to `li`")
                 .arg(arg!(-w --workspace <WORKSPACE> "list all workspace").required(true))
                 .arg(arg!(-p --project <PROJECT> "list all projects")),
         )

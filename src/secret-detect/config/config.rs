@@ -1,6 +1,8 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
+use std::fmt;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ViperConfig {
@@ -189,4 +191,95 @@ impl Config {
         // Sort ordered rules for consistency
         self.ordered_rules.sort();
     }
+}
+
+#[derive(Debug)]
+struct ConfigError {
+    message: String,
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl Error for ConfigError {}
+
+// Structure representing a rule
+struct Rule {
+    description: String,
+    regex: Regex,
+    tags: Vec<String>,
+    keywords: Vec<String>,
+    rule_id: String,
+    allowlist: Allowlist,
+    entropy: Option<f64>,
+    secret_group: Option<u8>,
+}
+
+// Structure representing an allowlist
+struct Allowlist {
+    regexes: Vec<Regex>,
+    commits: Vec<String>,
+    paths: Vec<Regex>,
+}
+
+// Structure representing the configuration
+struct Config {
+    rules: HashMap<String, Rule>,
+}
+
+// Function to convert Viper configuration to Rust configuration
+fn translate(viper_config: &ViperConfig) -> Result<Config, ConfigError> {
+    let mut rules = HashMap::new();
+    for (rule_id, rule_data) in &viper_config.rules {
+        let regex = Regex::new(&rule_data.regex).map_err(|e| ConfigError {
+            message: format!("Invalid regex for rule '{}': {}", rule_id, e),
+        })?;
+
+        let allowlist = Allowlist {
+            regexes: rule_data
+                .allowlist
+                .regexes
+                .iter()
+                .map(|r| Regex::new(r).unwrap())
+                .collect(),
+            commits: rule_data.allowlist.commits.clone(),
+            paths: rule_data
+                .allowlist
+                .paths
+                .iter()
+                .map(|r| Regex::new(r).unwrap())
+                .collect(),
+        };
+
+        // Validate secret group
+        if let Some(group) = rule_data.secret_group {
+            if group > 3 {
+                return Err(ConfigError {
+                    message: format!(
+                        "{} invalid regex secret group {}, max regex secret group 3",
+                        rule_data.description, group
+                    ),
+                });
+            }
+        }
+
+        rules.insert(
+            rule_id.to_string(),
+            Rule {
+                description: rule_data.description.clone(),
+                regex,
+                tags: rule_data.tags.clone(),
+                keywords: rule_data.keywords.clone(),
+                rule_id: rule_id.to_string(),
+                allowlist,
+                entropy: rule_data.entropy,
+                secret_group: rule_data.secret_group,
+            },
+        );
+    }
+
+    Ok(Config { rules })
 }

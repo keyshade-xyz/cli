@@ -19,7 +19,7 @@ pub fn generate_config_file(output_path: &str) {
     if let Err(e) = write_config_to_file(&config, output_path) {
         error!("Failed to write config to file: {}", e);
     } else {
-        info!("Successfully generated gitleaks.toml at {}", output_path);
+        info!("Successfully generated keyshade.toml at {}", output_path);
     }
 }
 

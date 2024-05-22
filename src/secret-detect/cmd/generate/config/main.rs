@@ -11,7 +11,7 @@ use crate::rules::*;
 
 const TEMPLATE_PATH: &str = "rules/config.tmpl";
 
-// Entry point for generating the gitleaks.toml configuration file
+// Entry point for generating the keyshade.toml configuration file
 pub fn generate_config_file(output_path: &str) {
     let mut config = Config::default();
     config.rules = build_rule_lookup();

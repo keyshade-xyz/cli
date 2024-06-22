@@ -1,12 +1,12 @@
-mod command;
+mod commands;
 mod constants;
+mod macros;
 mod models;
-mod util;
 
 use crate::constants::{ABOUT, VERSION};
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
-use command::{configure::ConfigureCommand, run::RunCommand, AbstractCommandInterface};
+use commands::{configure::ConfigureCommand, run::RunCommand, AbstractCommandInterface};
 
 fn cli() -> Command {
     Command::new("keyshades-cli")

@@ -21,3 +21,5 @@ Cargo.lock
 # Added by cargo
 
 /target
+
+keyshade.toml

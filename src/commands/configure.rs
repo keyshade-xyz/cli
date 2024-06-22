@@ -43,9 +43,9 @@ impl<'a> ConfigureCommand<'a> {
 
         // Get the parsed toml content
         let toml_content = generate_project_toml!(
-            self.parsed_data.workspace,
-            self.parsed_data.project,
-            self.parsed_data.environment
+            &self.parsed_data.workspace,
+            &self.parsed_data.project,
+            &self.parsed_data.environment
         );
 
         // Write the toml content to the file
@@ -64,9 +64,9 @@ impl<'a> ConfigureCommand<'a> {
 
         // Get the parsed toml content
         let toml_content = generate_user_root_toml!(
-            self.parsed_data.api_key,
-            self.parsed_data.private_key,
-            self.parsed_data.project
+            &self.parsed_data.api_key,
+            &self.parsed_data.private_key,
+            &self.parsed_data.project
         );
 
         // Write the toml content to the file
@@ -127,7 +127,7 @@ impl<'a> AbstractCommandInterface for ConfigureCommand<'a> {
         Ok(())
     }
 
-    fn execute(&self) -> Result<(), io::Error> {
+    async fn execute(&self) -> Result<(), io::Error> {
         let mut should_upsert_keyshade_toml = true;
         let mut should_upsert_user_root_toml = true;
 

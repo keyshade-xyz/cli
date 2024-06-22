@@ -17,11 +17,8 @@ macro_rules! get_os_specific_user_root_config_path {
 macro_rules! generate_user_root_toml {
     ($api_key: expr, $private_key: expr, $project: expr) => {{
         let mut user_root_map = ::std::collections::HashMap::new();
-        let config = crate::models::toml_model::UserRootConfig {
-            api_key: $api_key.to_string(),
-            private_key: $private_key.to_string(),
-        };
-        user_root_map.insert($project.to_string(), &config);
+        user_root_map.insert("api_key".to_string(), $api_key);
+        user_root_map.insert("private_key".to_string(), $private_key);
         ::toml::to_string_pretty(&user_root_map).unwrap()
     }};
 }
@@ -30,12 +27,9 @@ macro_rules! generate_user_root_toml {
 macro_rules! generate_project_toml {
     ($workspace: expr, $project: expr, $environment: expr) => {{
         let mut project_map = ::std::collections::HashMap::new();
-        let config = crate::models::toml_model::ProjectRootConfig {
-            workspace: $workspace.to_string(),
-            project: $project.to_string(),
-            environment: $environment.to_string(),
-        };
-        project_map.insert($project.to_string(), &config);
+        project_map.insert("workspace".to_string(), $workspace);
+        project_map.insert("project".to_string(), $project);
+        project_map.insert("environment".to_string(), $environment);
         ::toml::to_string_pretty(&project_map).unwrap()
     }};
 }

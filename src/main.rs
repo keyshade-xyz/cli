@@ -3,6 +3,8 @@ mod constants;
 mod macros;
 mod models;
 
+use std::io;
+
 use crate::constants::{ABOUT, VERSION};
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
@@ -56,19 +58,46 @@ fn cli() -> Command {
                         .help("Configure the private key"),
                 ),
         )
+        .subcommand(
+            Command::new("run")
+                .alias("r")
+                .about("Run the keyshades CLI, alias to `r`"),
+        )
 }
 
-fn main() {
+pub enum CommandEnum<'a> {
+    Configure(ConfigureCommand<'a>),
+    Run(RunCommand),
+}
+
+impl<'a> AbstractCommandInterface for CommandEnum<'a> {
+    fn parse_args(&mut self) -> Result<(), io::Error> {
+        match self {
+            CommandEnum::Configure(command) => command.parse_args(),
+            CommandEnum::Run(command) => command.parse_args(),
+        }
+    }
+
+    async fn execute(&self) -> Result<(), io::Error> {
+        match self {
+            CommandEnum::Configure(command) => command.execute().await,
+            CommandEnum::Run(command) => command.execute().await,
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
     let matches: ArgMatches = cli().get_matches();
-    let mut command: Option<Box<dyn AbstractCommandInterface>> = None;
+    let mut command: Option<CommandEnum> = None;
 
     // Get the subcommand implementation based on the user input
     match matches.subcommand() {
         Some(("configure", args)) => {
-            command = Some(Box::new(ConfigureCommand::new(args)));
+            command = Some(CommandEnum::Configure(ConfigureCommand::new(args)));
         }
-        Some(("run", args)) => {
-            command = Some(Box::new(RunCommand::new(args)));
+        Some(("run", _args)) => {
+            command = Some(CommandEnum::Run(RunCommand::new()));
         }
         _ => {
             println!("Error: No subcommand provided. Usage: ks [SUBCOMMAND] [OPTIONS]");
@@ -78,7 +107,7 @@ fn main() {
     // Execute the subcommand
     if let Some(mut c) = command {
         c.parse_args().unwrap();
-        c.execute().unwrap();
+        let _ = c.execute().await;
     } else {
         panic!("Error: No subcommand provided. Usage: ks [SUBCOMMAND] [OPTIONS]");
     }

@@ -1,11 +1,8 @@
-use futures_util::{SinkExt, StreamExt};
-use serde_json::json;
 use std::io;
-use std::io::Read;
-use tokio_tungstenite::{
-    connect_async,
-    tungstenite::{handshake::client::Request, Message},
-};
+use std::thread;
+use websocket::client::ClientBuilder;
+use websocket::OwnedMessage;
+use serde_json::json;
 
 use crate::{
     file_exists, get_os_specific_user_root_config_path,
@@ -80,30 +77,26 @@ impl AbstractCommandInterface for RunCommand {
         Ok(())
     }
 
-    async fn execute(&self) -> Result<(), io::Error> {
+    fn execute(&self) -> Result<(), io::Error> {
         print!("Running the project: ");
         println!(
             "{} {} {} {}",
             self.workspace, self.project, self.environment, self.api_key
         );
 
-        // Create a request with the URL and headers
-        let request = Request::builder()
-            .uri("ws://localhost:4200/change-notifier")
-            .header("x-keyshade-token", &self.api_key)
-            .header("sec-websocket-key", &self.private_key)
-            .header("host", "localhost:4200")
-            .body(())
-            .expect("Failed to build request");
-
-        // Connect to the WebSocket server with the custom headers
-        let (ws_stream, _) = connect_async(request)
-            .await
+        // Create a ClientBuilder
+        let mut client = ClientBuilder::new("ws://localhost:4200/change-notifier")
+            .unwrap()
+            .add_protocol("rust-websocket")
+            .custom_headers(&vec![
+                ("x-keyshade-token".to_string(), self.api_key.clone()),
+                ("sec-websocket-key".to_string(), self.private_key.clone()),
+                ("host".to_string(), "localhost:4200".to_string()),
+            ])
+            .connect_insecure()
             .expect("Failed to connect to WebSocket server");
 
         println!("Connected");
-
-        let (mut write, mut read) = ws_stream.split();
 
         // Register client app
         let register_message = json!({
@@ -112,25 +105,28 @@ impl AbstractCommandInterface for RunCommand {
             "environmentName": self.environment
         });
 
-        write
-            .send(Message::Text(register_message.to_string()))
-            .await
+        client
+            .send_message(&OwnedMessage::Text(register_message.to_string()))
             .expect("Failed to send register message");
 
-        // Listen for configuration-updated messages
-        while let Some(message) = read.next().await {
-            match message {
-                Ok(msg) => match msg {
-                    Message::Text(text) => println!("Change received: {}", text),
-                    _ => (),
-                },
-                Err(e) => {
-                    println!("Error: {}", e);
-                    break;
+        // Create a thread to receive messages
+        let (mut receiver, _) = client.split().unwrap();
+        thread::spawn(move || {
+            for message in receiver.incoming_messages() {
+                match message {
+                    Ok(OwnedMessage::Text(text)) => println!("Change received: {}", text),
+                    Ok(_) => (),
+                    Err(e) => {
+                        println!("Error: {:?}", e);
+                        break;
+                    }
                 }
             }
-        }
+        });
 
-        Ok(())
+        // Keep the main thread running
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
     }
 }

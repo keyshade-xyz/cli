@@ -1,78 +1,171 @@
-use colored::Colorize;
-use inquire::Password;
-use spinners::{Spinner, Spinners};
-use std::{fs, path::Path};
+use clap::ArgMatches;
+use std::io;
+use std::io::Write;
 
-use directories::UserDirs;
+use crate::{
+    file_exists, generate_project_toml, generate_user_root_toml,
+    get_os_specific_user_root_config_path, read_from_terminal, read_securely_from_terminal,
+    write_file,
+};
 
-use crate::{constants::CONFIG_FILE_NAME, generate_config_toml};
+use super::AbstractCommandInterface;
 
-/// Configures the keyshades-cli by creating a configuration file in the user's home directory.
-///
-/// # Arguments
-///
-/// * `wrkspc` - A reference to a `String` representing the workspace name.
-/// * `prjct` - An optional reference to a `String` representing the project name.
-///
-/// # Example
-///
-/// ```
-/// let workspace = "my_workspace".to_string();
-/// let project = Some("my_project".to_string());
-/// configure(&workspace, project.as_ref());
-/// ```
-pub fn configure(wrkspc: &String, prjct: Option<&String>) {
-    let mut api_key_input: String = String::new();
-    let mut private_key_input: String = String::new();
+#[derive(Debug)]
+struct ConfigureCommandParsedData {
+    workspace: String,
+    project: String,
+    environment: String,
+    api_key: String,
+    private_key: String,
+}
 
-    println!("\n{}\n", "* Configuring the keyshades-cli".on_cyan().bold());
+pub struct ConfigureCommand<'a> {
+    parsed_data: ConfigureCommandParsedData,
+    args: &'a ArgMatches,
+}
 
-    if let Some(user_dirs) = UserDirs::new() {
-        let config_dir: &Path = user_dirs.home_dir();
-        // Linux:   /home/JohnDoe
-        // Windows: C:\Users\JohnDoe
-        // macOS:   /Users/JohnDoe
+impl<'a> ConfigureCommand<'a> {
+    pub fn new(args: &'a ArgMatches) -> ConfigureCommand<'a> {
+        ConfigureCommand {
+            parsed_data: ConfigureCommandParsedData {
+                workspace: String::new(),
+                project: String::new(),
+                environment: String::new(),
+                api_key: String::new(),
+                private_key: String::new(),
+            },
+            args,
+        }
+    }
 
-        match fs::read_to_string(config_dir.join(CONFIG_FILE_NAME)) {
-            Ok(_config_file) => {
-                println!("{}", "Config file exists 🙌".bright_green());
-            }
-            Err(_e) => {
-                // add a new workspace and project if the file does not exist
+    fn create_keyshade_toml(&self) -> Result<(), io::Error> {
+        println!("Creating keyshade.toml...");
 
-                if prjct.is_some() {
-                    api_key_input = Password::new("Enter your API Key:")
-                        .without_confirmation()
-                        .prompt()
-                        .unwrap();
-                    private_key_input = Password::new("Enter your Private Key:")
-                        .without_confirmation()
-                        .prompt()
-                        .unwrap();
-                }
+        // Get the parsed toml content
+        let toml_content = generate_project_toml!(
+            &self.parsed_data.workspace,
+            &self.parsed_data.project,
+            &self.parsed_data.environment
+        );
 
-                let mut sp = Spinner::new(Spinners::Dots9, "Creating config file...".into());
-                if let Some(project) = prjct {
-                    let config_str: String = generate_config_toml!(
-                        wrkspc,
-                        Some(project.to_string()),
-                        api_key_input,
-                        private_key_input
-                    );
-                    fs::write(config_dir.join(CONFIG_FILE_NAME), config_str).unwrap();
-                } else {
-                    let config_str: String = generate_config_toml!(wrkspc, None, "", "");
-                    fs::write(config_dir.join(CONFIG_FILE_NAME), config_str).unwrap();
-                }
+        // Write the toml content to the file
+        write_file!("keyshade.toml", toml_content);
 
-                sp.stop();
-                println!("\n{}", "Config file created 🎉".bright_green());
+        println!("keyshade.toml created successfully!");
+
+        Ok(())
+    }
+
+    fn create_user_root_toml(&self) -> Result<(), io::Error> {
+        println!("Creating user root toml...");
+
+        // Get the user root toml path
+        let user_root_toml_path = get_os_specific_user_root_config_path!(self.parsed_data.project);
+
+        // Get the parsed toml content
+        let toml_content = generate_user_root_toml!(
+            &self.parsed_data.api_key,
+            &self.parsed_data.private_key,
+            &self.parsed_data.project
+        );
+
+        // Write the toml content to the file
+        write_file!(&user_root_toml_path, toml_content);
+
+        println!("User root toml created successfully!");
+
+        Ok(())
+    }
+}
+
+impl<'a> AbstractCommandInterface for ConfigureCommand<'a> {
+    fn parse_args(&mut self) -> Result<(), io::Error> {
+        let args = self.args;
+
+        let workspace = if let Some(w) = args.get_one::<String>("WORKSPACE") {
+            w.to_string()
+        } else {
+            read_from_terminal!("Enter the workspace name: ")
+        };
+
+        // Read project name
+        let project = if let Some(p) = args.get_one::<String>("PROJECT") {
+            p.to_string()
+        } else {
+            read_from_terminal!("Enter the project name:")
+        };
+
+        // Read environment name
+        let environment = if let Some(e) = args.get_one::<String>("ENVIRONMENT") {
+            e.to_string()
+        } else {
+            read_from_terminal!("Enter the environment name: ")
+        };
+
+        // Read API Key
+        let api_key = if let Some(a) = args.get_one::<String>("API_KEY") {
+            a.to_string()
+        } else {
+            read_securely_from_terminal!("Enter your API Key:")
+        };
+
+        // Read Private Key
+        let private_key = if let Some(p) = args.get_one::<String>("PRIVATE_KEY") {
+            p.to_string()
+        } else {
+            read_securely_from_terminal!("Enter your Private Key:")
+        };
+
+        self.parsed_data = ConfigureCommandParsedData {
+            workspace,
+            project,
+            environment,
+            api_key,
+            private_key,
+        };
+
+        Ok(())
+    }
+
+    async fn execute(&self) -> Result<(), io::Error> {
+        let mut should_upsert_keyshade_toml = true;
+        let mut should_upsert_user_root_toml = true;
+
+        // Check if keyshade.toml exists in the current directory
+        if file_exists!("keyshade.toml") {
+            // If it does, ask if the users want to overwrite it
+            let choice = read_from_terminal!(
+                "keyshade.toml already exists. Do you want to overwrite it? (y/n): "
+            );
+
+            if choice.to_lowercase() != "y" {
+                println!("Skipping keyshade.toml creation...");
+                should_upsert_keyshade_toml = false;
             }
         }
-    } else {
-        eprintln!(
-            "{}",
-            "Error: Could not find the user's home directory".bright_red()
-        );
+
+        // Check if user root toml exists
+        let user_root_toml_path = get_os_specific_user_root_config_path!(self.parsed_data.project);
+        if file_exists!(&user_root_toml_path) {
+            // If it does, ask if the users want to overwrite it
+            let choice = read_from_terminal!(format!(
+                "{} already exists. Do you want to overwrite it? (y/n): ",
+                user_root_toml_path
+            ));
+
+            if choice.to_lowercase() != "y" {
+                println!("Skipping user root toml creation...");
+                should_upsert_user_root_toml = false;
+            }
+        }
+
+        if should_upsert_keyshade_toml {
+            self.create_keyshade_toml()?;
+        }
+
+        if should_upsert_user_root_toml {
+            self.create_user_root_toml()?;
+        }
+        Ok(())
     }
 }
